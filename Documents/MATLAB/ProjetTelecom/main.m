@@ -9,47 +9,55 @@ c = 300000000;
 frequency = 245e+09;
 pulsation = 2*pi*frequency;
 
-wall_list = [];
-xspace = 60;
+wall_list = []; %Crée une liste des murs, qui sera utile pour passer chaque interaction en revue
+xspace = 60; %Dimensions de l'espace
 yspace = 60;
-space = zeros(yspace,xspace);
-w1 = wall(1,20,20,6,0.01,eps_0,pulsation);
+space = zeros(yspace,xspace); %Création d'une matrice qui va contenir les puissances pour chaque élement de surface
+w1 = wall(1,20,20,6,0.01,eps_0,pulsation); %Créations d'objets "murs"
 w2 = wall(1,10,10,6,0.01,eps_0,pulsation);
-wall_list = [wall_list w1 w2];
-emitter_pos = [15,15];
-GTX = 15;
+wall_list = [wall_list w1 w2]; %Rajout des nouveaux murs à la liste
+emitter_pos = [15,15]; %Position de l'émetteur
+GTX = 15; %Caractéristiques de l'émetteur
 PTX = 15;
 for walls = wall_list
-    space(walls.y_pos,walls.x_pos) = 0;
+    space(walls.y_pos,walls.x_pos) = 0; %Met à zéro les élements de l'espace correspondant aux murs - c'est le seul moyen que j'ai trouvé pour les afficher, c'est un peu moche
 end
-space(emitter_pos(2),emitter_pos(1)) = 0;
-wave1 = wave();
+space(emitter_pos(2),emitter_pos(1)) = 0; %idem pour l'émetteur
+wave1 = wave(); %Création d'onde - sert à rien pour le moment
 waves = [wave1];
 beta = pulsation/c;
 
-for i = 1:1:size(waves)
+for i = 1:1:size(waves) %pour chaque onde (ne sert à rien pour le moment)
     wav = waves(i);
     for y_s = 1:1:yspace
-        for x_s = 1:1:xspace
+        for x_s = 1:1:xspace  %Parcours tous les éléments de surface de l'espace
             if (x_s == emitter_pos(1) && y_s == emitter_pos(2))
-                P = 0;
+                P = 0; %Si c'est l'émetteur on met à zéro, toujours pour garder la visibilité (mais toujours un peu moche)
             else
-                d = sqrt((emitter_pos(2)-y_s)^2 + (emitter_pos(1)-x_s)^2);
-                P = (abs(sqrt(60*GTX*PTX)*(exp(-j*beta*d))/d)^2)/(2*120*pi);
+                d = sqrt((emitter_pos(2)-y_s)^2 + (emitter_pos(1)-x_s)^2); %Calcul de la distance entre le point de mesure et l'émetteur
+                P = (abs(sqrt(60*GTX*PTX)*(exp(-j*beta*d))/d)^2)/(2*120*pi); %Calcul de la puissance transmise DIRECTEMENT
+                
+                % AJOUT DE LA PUISSANCE DUE A UNE PREMIERE REFLEXION (n'est utile qu'avec les murs externes ==> c'est donc pas utile du tout, j'ai une nouvelle version qui ne l'utilise plus)
+                
                 P = P+reflexion_1(emitter_pos(1),emitter_pos(2),x_s,y_s, xspace,yspace,GTX,PTX,beta);
+                
+                %Pour chaque mur "indépendants" - calcul de la reflexion (première reflexion)
                 for ind_wall = wall_list
                     P = P+ reflexion_1_on_ind_walls(emitter_pos(1),emitter_pos(2),x_s,y_s,ind_wall.x_pos,ind_wall.y_pos,GTX,PTX,beta);
                 end
             end
+            %Place la valeur de puissance dans la matrice qui garde tout ça
             space(y_s,x_s) = space(y_s,x_s)+ P;
         end
     end
 end
 
 for(wa = wall_list)
-    space(wa.y_pos,wa.x_pos) = 0;
+    space(wa.y_pos,wa.x_pos) = 0;%Remet à zéro les murs -> pour la visibilité
 end
 %% 
+
+% Le reste n'est que du code pour l'affichage
 
 map = [0,0,128;
 2,3,130;
